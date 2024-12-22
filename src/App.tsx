@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { ATTRIBUTE_LIST, CLASS_LIST, SKILL_LIST } from "./consts";
 
 function App() {
+  useEffect(() => {
+    loadGame();
+  }, []);
+
+  const API_URL =
+    "https://recruiting.verylongdomaintotestwith.ca/api/{tsudot}/character";
   const ATTRIBUTE_STATE = {};
   const ATTRIBUTE_MODIFITER_STATE = {};
   const SKILL_POINTS = {};
@@ -100,102 +106,151 @@ function App() {
     return 10 + 4 * attributeModifiers["Intelligence"];
   };
 
+  interface RPGData {
+    attributes: Record<string, number>;
+    attributeModifiers: Record<string, number>;
+    skillPoints: Record<string, number>;
+  }
+
+  const loadGame = async () => {
+    try {
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error("Error loading...");
+      }
+      const result: RPGData = await response.json();
+      setAttributes(result["body"]["attributes"]);
+      setAttributeModifiers(result["body"]["attributeModifiers"]);
+      setSkillPoints(result["body"]["skillPoints"]);
+    } catch (err) {
+      console.error("Error loading game", err);
+    }
+  };
+
+  const saveGame = async () => {
+    const rpgData: RPGData = {
+      attributes: attributes,
+      attributeModifiers: attributeModifiers,
+      skillPoints: skillPoints,
+    };
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(rpgData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error saving...");
+      }
+      const result = await response.json();
+      console.log("API Response:", result);
+    } catch (err) {
+      console.error("Error saving game", err);
+    }
+  };
+
   return (
     <>
-      <div>
+      <div className="container">
         <h1>RPG</h1>
-
+        <button onClick={saveGame}>save</button>
         {/* Attributes */}
-        <div>
-          <h2>Attributes</h2>
-          <p>
-            {attributes["totalAttribute"] + 1 > 70 &&
-              "Max of 70 points reached!"}
-          </p>
-          <table>
-            <tbody>
-              {ATTRIBUTE_LIST.map((attribute) => (
-                <tr key={attribute}>
-                  <td>
-                    {attribute}: {attributes[attribute]}
-                  </td>
+        <div className="row align-items-start">
+          <div className="col">
+            <h2>Attributes</h2>
+            <p>
+              {attributes["totalAttribute"] + 1 > 70 &&
+                "Max of 70 points reached!"}
+            </p>
+            <table>
+              <tbody>
+                {ATTRIBUTE_LIST.map((attribute) => (
+                  <tr key={attribute}>
+                    <td>
+                      {attribute}: {attributes[attribute]}
+                    </td>
 
-                  <td>
-                    <button onClick={() => decrementAttribute(attribute)}>
-                      -
-                    </button>
-                  </td>
-                  <td>
-                    <button onClick={() => incrementAttribute(attribute)}>
-                      +
-                    </button>
-                  </td>
-                  <td> Modifier: {attributeModifiers[attribute]} </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <td>
+                      <button onClick={() => decrementAttribute(attribute)}>
+                        -
+                      </button>
+                    </td>
+                    <td>
+                      <button onClick={() => incrementAttribute(attribute)}>
+                        +
+                      </button>
+                    </td>
+                    <td> Modifier: {attributeModifiers[attribute]} </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Classes */}
-        <div>
-          <h2>Classes</h2>
-          {Object.entries(CLASS_LIST).map(([className, attributes]) => {
-            const classKey = className;
-            const classMeets = meetsRequirements(className);
-            return (
-              <ul>
-                <li
-                  key={classKey}
-                  style={{
-                    cursor: "pointer",
-                    fontWeight: classMeets ? "bold" : "normal",
-                    color: classMeets ? "green" : "black",
-                  }}
-                  onClick={() => toggleClassVisibility(classKey)}
-                >
-                  {classKey}
+          {/* Classes */}
+          <div className="col">
+            <h2>Classes</h2>
+            {Object.entries(CLASS_LIST).map(([className, attributes]) => {
+              const classKey = className;
+              const classMeets = meetsRequirements(className);
+              return (
+                <ul>
+                  <li
+                    key={classKey}
+                    style={{
+                      cursor: "pointer",
+                      fontWeight: classMeets ? "bold" : "normal",
+                      color: classMeets ? "green" : "black",
+                    }}
+                    onClick={() => toggleClassVisibility(classKey)}
+                  >
+                    {classKey}
+                  </li>
+
+                  {visibleClass === classKey && (
+                    <div style={{ marginLeft: "10px", marginTop: "5px" }}>
+                      {Object.entries(attributes).map(([attribute, value]) => (
+                        <li key={attribute}>
+                          {attribute}: {value}
+                        </li>
+                      ))}
+                    </div>
+                  )}
+                </ul>
+              );
+            })}
+          </div>
+
+          {/* Skills */}
+          <div className="col">
+            <h2>Skills</h2>
+            <p>
+              {" "}
+              Total Available Points : {totalAvailablePoints()}{" "}
+              {skillPoints["totalPoints"] + 1 > totalAvailablePoints() &&
+                "All points used up!"}
+            </p>
+            <ul>
+              {SKILL_LIST.map((skill, index) => (
+                <li key={index}>
+                  <strong>{skill.name}</strong> - points:{" "}
+                  {skillPoints[skill.name]} {skill.attributeModifier}:{" "}
+                  {attributeModifiers[skill.attributeModifier]}
+                  <button onClick={() => removeSkill(skill.name)}>-</button>
+                  <button onClick={() => addSkill(skill.name)}>+</button>
+                  total:{" "}
+                  {skillPoints[skill.name] > 0
+                    ? skillPoints[skill.name] +
+                      attributeModifiers[skill.attributeModifier]
+                    : 0}
                 </li>
-
-                {visibleClass === classKey && (
-                  <div style={{ marginLeft: "10px", marginTop: "5px" }}>
-                    {Object.entries(attributes).map(([attribute, value]) => (
-                      <li key={attribute}>
-                        {attribute}: {value}
-                      </li>
-                    ))}
-                  </div>
-                )}
-              </ul>
-            );
-          })}
-        </div>
-
-        {/* Skills */}
-        <div>
-          <h2>Skills</h2>
-          <p>
-            {" "}
-            Total Available Points : {totalAvailablePoints()}{" "}
-            {skillPoints["totalPoints"] + 1 > totalAvailablePoints() &&
-              "All points used up!"}
-          </p>
-          <ul>
-            {SKILL_LIST.map((skill, index) => (
-              <li key={index}>
-                <strong>{skill.name}</strong> - points:{" "}
-                {skillPoints[skill.name]} {skill.attributeModifier}:{" "}
-                {attributeModifiers[skill.attributeModifier]}
-                <button onClick={() => removeSkill(skill.name)}>-</button>
-                <button onClick={() => addSkill(skill.name)}>+</button>
-                total:{" "}
-                {skillPoints[skill.name] > 0
-                  ? skillPoints[skill.name] +
-                    attributeModifiers[skill.attributeModifier]
-                  : 0}
-              </li>
-            ))}
-          </ul>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </>
