@@ -5,16 +5,24 @@ import { ATTRIBUTE_LIST, CLASS_LIST, SKILL_LIST } from "./consts";
 function App() {
   const ATTRIBUTE_STATE = {};
   const ATTRIBUTE_MODIFITER_STATE = {};
+  const SKILL_POINTS = {};
 
   ATTRIBUTE_LIST.forEach((item, index) => {
     ATTRIBUTE_STATE[item] = 10;
     ATTRIBUTE_MODIFITER_STATE[item] = 0;
   });
 
+  SKILL_LIST.forEach((item, index) => {
+    SKILL_POINTS[item["name"]] = 0;
+  });
+  SKILL_POINTS["totalPoints"] = 0;
+
   const [attributes, setAttributes] = useState(ATTRIBUTE_STATE);
   const [attributeModifiers, setAttributeModifiers] = useState(
     ATTRIBUTE_MODIFITER_STATE
   );
+
+  const [skillPoints, setSkillPoints] = useState(SKILL_POINTS);
 
   // Class details visibility state
   const [visibleClass, setVisibleClass] = useState(null);
@@ -61,6 +69,29 @@ function App() {
     return ATTRIBUTE_LIST.every((attribute) => {
       return attributes[attribute] >= CLASS_LIST[className][attribute];
     });
+  };
+
+  const addSkill = (skill: string) => {
+    if (skillPoints["totalPoints"] + 1 > totalAvailablePoints()) {
+      return;
+    }
+    setSkillPoints((skillPoints) => ({
+      ...skillPoints,
+      [skill]: skillPoints[skill] + 1,
+      ["totalPoints"]: skillPoints["totalPoints"] + 1,
+    }));
+  };
+
+  const removeSkill = (skill: string) => {
+    setSkillPoints((skillPoints) => ({
+      ...skillPoints,
+      [skill]: Math.max(skillPoints[skill] - 1, 0),
+      ["totalPoints"]: Math.max(skillPoints["totalPoints"] - 1, 0),
+    }));
+  };
+
+  const totalAvailablePoints = (): number => {
+    return 10 + 4 * attributeModifiers["Intelligence"];
   };
 
   return (
@@ -133,10 +164,25 @@ function App() {
         {/* Skills */}
         <div>
           <h2>Skills</h2>
+          <p>
+            {" "}
+            Total Available Points : {totalAvailablePoints()}{" "}
+            {skillPoints["totalPoints"] + 1 > totalAvailablePoints() &&
+              "All points used up!"}
+          </p>
           <ul>
             {SKILL_LIST.map((skill, index) => (
               <li key={index}>
-                <strong>{skill.name}</strong>: {skill.attributeModifier}
+                <strong>{skill.name}</strong> - points:{" "}
+                {skillPoints[skill.name]} {skill.attributeModifier}:{" "}
+                {attributeModifiers[skill.attributeModifier]}
+                <button onClick={() => removeSkill(skill.name)}>-</button>
+                <button onClick={() => addSkill(skill.name)}>+</button>
+                total:{" "}
+                {skillPoints[skill.name] > 0
+                  ? skillPoints[skill.name] +
+                    attributeModifiers[skill.attributeModifier]
+                  : 0}
               </li>
             ))}
           </ul>
