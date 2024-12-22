@@ -38,7 +38,6 @@ function App() {
 
   const incrementAttribute = (attribute: string) => {
     if (attributes["totalAttribute"] + 1 > 70) {
-      alert("Cannot have more than 70 points.");
       return;
     }
     const value = attributes[attribute] + 1;
@@ -109,6 +108,10 @@ function App() {
         {/* Attributes */}
         <div>
           <h2>Attributes</h2>
+          <p>
+            {attributes["totalAttribute"] + 1 > 70 &&
+              "Max of 70 points reached!"}
+          </p>
           <table>
             <tbody>
               {ATTRIBUTE_LIST.map((attribute) => (
