@@ -11,6 +11,7 @@ function App() {
     ATTRIBUTE_STATE[item] = 10;
     ATTRIBUTE_MODIFITER_STATE[item] = 0;
   });
+  ATTRIBUTE_STATE["totalAttribute"] = 60;
 
   SKILL_LIST.forEach((item, index) => {
     SKILL_POINTS[item["name"]] = 0;
@@ -36,10 +37,15 @@ function App() {
   };
 
   const incrementAttribute = (attribute: string) => {
+    if (attributes["totalAttribute"] + 1 > 70) {
+      alert("Cannot have more than 70 points.");
+      return;
+    }
     const value = attributes[attribute] + 1;
     setAttributes((attributes) => ({
       ...attributes,
       [attribute]: value,
+      ["totalAttribute"]: attributes["totalAttribute"] + 1,
     }));
 
     calculateAbilityModifier(attribute, value);
@@ -50,6 +56,7 @@ function App() {
     setAttributes((attributes) => ({
       ...attributes,
       [attribute]: value,
+      ["totalAttribute"]: attributes["totalAttribute"] - 1,
     }));
 
     calculateAbilityModifier(attribute, value);
